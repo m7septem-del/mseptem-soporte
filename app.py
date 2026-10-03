@@ -234,6 +234,9 @@ with col2:
             else:
                 st.warning("Escribe un mensaje antes de presionar enviar.")
     else:
+        st.info("Selecciona un caso de la lista para gestionarlo.")
+
+    else:
     else:
         st.info("Selecciona un caso de la lista para gestionarlo.")
 
