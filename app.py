@@ -30,7 +30,6 @@ st.subheader("Gestión de Tickets y Enlace de Datos en Vivo con la App GEMINIS7 
 # --- 🔌 CONEXIÓN CON NEON POSTGRESQL ---
 def obtener_conexion():
     try:
-        # Lee la cadena de conexión desde los secretos de Streamlit
         conn_str = st.secrets["postgres"]["connection_string"]
         conn = psycopg2.connect(conn_str)
         return conn
@@ -145,13 +144,12 @@ with st.sidebar.form(key="formulario_ticket", clear_on_submit=True):
             nuevo_id = str(int(time.time()))
             nuevo_ticket = { "id": nuevo_id, "cliente": nuevo_cliente, "asunto": nuevo_asunto, "mensaje": nuevo_mensaje, "estado": "🔴 Abierto" }
             
-            # Guardar directamente en Neon
             guardar_ticket_bd(nuevo_ticket)
             st.sidebar.success("¡Ticket guardado en Neon!")
             time.sleep(0.5)
             st.rerun()
 
-# Procesar filtros y búsqueda en memoria local refrescada desde Neon
+# Procesar filtros y búsqueda
 tickets_filtrados = st.session_state['tickets_sistema']
 if filtro != "Todos":
     tickets_filtrados = [t for t in tickets_filtrados if t['estado'] == filtro]
@@ -159,7 +157,7 @@ if busqueda.strip() != "":
     termino = busqueda.lower()
     tickets_filtrados = [t for t in tickets_filtrados if termino in t['cliente'].lower() or termino in t['asunto'].lower() or termino in t['mensaje'].lower()]
 
-# --- DICCIONARIO DE PLANTILLAS ENFOCADAS EN GEMINIS7 ---
+# --- DICCIONARIO DE PLANTILLAS ---
 PLANTILLAS = {
     "Selecciona una plantilla...": "",
     "💬 Reporte Recibido de GEMINIS7": "Hola. Hemos recibido tu reporte técnico sobre la plataforma de mensajería. Nuestro equipo de ciberseguridad ya está analizando la traza en la base de datos para solucionar la incidencia en tu terminal a la brevedad.",
@@ -198,7 +196,8 @@ with col2:
         with c_borrar:
             if st.button("🗑️️ Eliminar Ticket", type="secondary", use_container_width=True):
                 eliminar_ticket_bd(t_activo['id'])
-                del st.session_state['ticket_activo_id']
+                if 'ticket_activo_id' in st.session_state:
+                    del st.session_state['ticket_activo_id']
                 st.toast("Ticket eliminado de Neon")
                 time.sleep(0.5)
                 st.rerun()
@@ -236,15 +235,10 @@ with col2:
     else:
         st.info("Selecciona un caso de la lista para gestionarlo.")
 
-    else:
-    else:
-        st.info("Selecciona un caso de la lista para gestionarlo.")
-
 # --- 📊 SECCIÓN INFERIOR: RENDIMIENTO Y GRÁFICO ---
 st.markdown("---")
 st.header("📊 Resumen y Rendimiento de Casos")
 
-# Refrescamos métricas directamente de la BD actual
 tickets_actuales = cargar_datos_permanentes()
 total_tickets = len(tickets_actuales)
 abiertos = sum(1 for t in tickets_actuales if "Abierto" in t['estado'])
@@ -257,7 +251,6 @@ m2.metric("🔴 Abiertos", abiertos)
 m3.metric("🟡 En Proceso", proceso)
 m4.metric("🟢 Resueltos", resueltos)
 
-# Renderizado de gráfico estético circular de rendimiento
 if total_tickets > 0:
     fig, ax = plt.subplots(figsize=(4, 2))
     fig.patch.set_facecolor('#00000000') # Transparente para acoplarse a Streamlit
